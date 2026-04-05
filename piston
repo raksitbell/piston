@@ -18,6 +18,7 @@ case $1 in
     help)
         echo "=== Piston Management ==="
         echo "Current Environment: $PISTON_ENV"
+        echo "Windows users: Use .\piston.ps1 for a native PowerShell experience."
         echo
         echo "Commands:"
         echo " select <environment>           Select the environment"

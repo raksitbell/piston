@@ -20,6 +20,7 @@ This repository is optimized for local, personal code execution on both **ARM64 
 2. **Package Discovery**: Use `./piston list --all` to see available packages.
 3. **Upstream Updates**: Periodically run `./piston sync` to fetch new languages and engine improvements from the original repository.
 4. **Execution**: Run code using `./piston run <lang> <file>`.
+5. **Maintenance**: Always update **CHANGELOG.md** after making significant improvements or architectural changes.
 
 ## 🧬 Architecture Support
 - **M-Series Mac**: Fully supported with native ARM64 Node.js binaries.

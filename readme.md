@@ -2,6 +2,9 @@
 
 A high-performance, general-purpose code execution engine, customized for personal use. Piston allows you to run untrusted and potentially malicious code in a secure, sandboxed environment.
 
+| Command | Description |
+| :--- | :--- |
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -9,9 +12,9 @@ A high-performance, general-purpose code execution engine, customized for person
 - Docker & Docker Compose
 - Node.js (for the CLI)
 - Cgroup v2 enabled (for sandboxing)
-- **Supported Architectures**: x86_64 (Intel/AMD) and ARM64 (Apple Silicon/M-series).
+- **Supported Architectures**: x86_64 and ARM64 (Apple Silicon).
 
-### Installation
+### Installation (Mac/Linux/WSL)
 
 1. **Clone the repository:**
    ```sh
@@ -20,9 +23,21 @@ A high-performance, general-purpose code execution engine, customized for person
    ```
 
 2. **Initialize Piston:**
-   The recommended way to start is using the **Setup Wizard**:
    ```sh
    ./piston setup
+   ```
+
+### Installation (Windows Native)
+
+1. **Clone the repository** (or download ZIP).
+2. **Open PowerShell as Administrator**.
+3. **Enable script execution**:
+   ```powershell
+   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+4. **Initialize Piston**:
+   ```powershell
+   .\piston.ps1 setup
    ```
    *This will start the API, scan your local packages, and guide you through building and installing your first runtimes.*
 

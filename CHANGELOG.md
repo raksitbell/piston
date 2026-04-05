@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
   - `./piston list --all`: View all available packages in the repository.
   - `./piston install <package>`: Install a pre-built package.
   - `./piston uninstall <package>`: Remove an installed package.
+- **Native Windows Support**: Added `piston.ps1` PowerShell management script for a first-class experience on x86 Windows.
+- **Improved Windows Documentation**: Added native installation instructions for Windows users.
 - **Multi-Platform Support**: Build scripts now automatically detect and use the correct architecture (`x64` or `arm64`), enabling support for Apple Silicon Macs and regular Intel/AMD servers.
 
 ### Changed
