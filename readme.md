@@ -1,20 +1,16 @@
 # Piston (Personal Edition)
 
-A high-performance, general-purpose code execution engine, customized for personal use. Piston allows you to run untrusted and potentially malicious code in a secure, sandboxed environment.
-
-| Command | Description |
-| :--- | :--- |
+A high-performance, general-purpose code execution engine, optimized for personal use and entirely managed via Docker. Piston allows you to run untrusted and potentially malicious code in a secure, sandboxed environment.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Docker & Docker Compose
-- Node.js (for the CLI)
-- Cgroup v2 enabled (for sandboxing)
+- **Docker & Docker Compose** (Required)
+- **Cgroup v2** enabled (standard on most modern Linux distros and macOS)
 - **Supported Architectures**: x86_64 and ARM64 (Apple Silicon).
 
-### Installation (Mac/Linux/WSL)
+### Installation
 
 1. **Clone the repository:**
    ```sh
@@ -22,93 +18,89 @@ A high-performance, general-purpose code execution engine, customized for person
    cd piston
    ```
 
-2. **Initialize Piston:**
+2. **Configure your environment:**
+   Copy the example environment file and edit it to your liking:
    ```sh
-   ./piston setup
+   cp .env.example .env
+   ```
+   Open `.env` and set your preferred port and the list of languages you want to install:
+   ```env
+   # Example: Install Python, Node.js, and GCC
+   PISTON_INSTALL_PACKAGES=python,node,gcc
    ```
 
-### Installation (Windows Native)
+3. **Build the container image:** (Required for new setup)
+   ```sh
+   docker-compose build api
+   ```
 
-1. **Clone the repository** (or download ZIP).
-2. **Open PowerShell as Administrator**.
-3. **Enable script execution**:
-   ```powershell
-   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+4. **Start Piston:**
+   ```sh
+   ./scripts/piston start
    ```
-4. **Initialize Piston**:
-   ```powershell
-   .\piston.ps1 setup
-   ```
-   *This will start the API, scan your local packages, and guide you through building and installing your first runtimes.*
+   *The container will automatically download and install the languages you've listed in `.env` on startup. Check the progress with `./scripts/piston logs`.*
+
+---
 
 ## 🛠 Usage
 
-### Management Script (`./piston`)
+### Management Utility (`./scripts/piston`)
 
-The `./piston` script is your main entry point for managing the service.
+A thin helper script is provided for common tasks:
 
 | Command | Description |
 | :--- | :--- |
-| **`./piston setup`** | **(Recommended)** Interactive wizard for building and installing languages. |
-| **`./piston list`** | List all currently installed and active language packages. |
-| **`./piston list --all`** | List every package available in the repository index. |
-| **`./piston install <pkg>`**| Install a pre-built package from the repository. |
-| **`./piston uninstall <pkg>`** | Remove a language package (cleanly hides it from the list). |
-| **`./piston sync`** | Synchronize your fork with the original upstream repository. |
-| **`./piston start / stop`** | Start or stop the Piston API Docker containers. |
-| **`./piston restart`** | Restart the Piston environment. |
-| **`./piston logs`** | View live logs from the API and repository services. |
+| **`./scripts/piston start`** | Start Piston in the background using docker-compose. |
+| **`./scripts/piston stop`** | Stop the service and remove containers. |
+| **`./scripts/piston restart`** | Restart all Piston services. |
+| **`./scripts/piston logs`** | View live logs (useful for monitoring language installation). |
+| **`./scripts/piston list`** | List all currently installed and active language runtimes. |
+| **`./scripts/piston update`**| Update the codebase and rebuild the container image. |
+| **`./scripts/piston shell`** | Open a bash shell inside the API container. |
 
-### CLI (`core/cli/index.js`)
+### Configuration (`.env`)
 
-You can also interact with the CLI directly via the helper script for more advanced usage:
+Piston is configured entirely through environment variables. Key options include:
 
-```sh
-# Run a script immediately
-echo 'print("Hello from Piston!")' > test.py
-./piston run python test.py
-```
+- `PISTON_INSTALL_PACKAGES`: Comma-separated list of languages to auto-install (e.g., `python,node=20.11.1,bash`).
+- `PORT`: The host port to map Piston API to (default: `2000`).
+- `PISTON_LOG_LEVEL`: Set to `DEBUG` for detailed troubleshooting.
 
-## 🌐 API Reference
+## 🌐 Documentation
 
-The Piston API is exposed on port **2000** by default.
+- [**API Reference**](./docs/api.md): Detailed technical guide for REST and WebSocket endpoints.
+- [**Changelog**](CHANGELOG.md): History of all notable changes and releases.
 
-### Execute Code
-`POST /api/v2/execute`
-
-**Request Body:**
-```json
-{
-    "language": "python",
-    "version": "3.10.0",
-    "files": [
-        {
-            "name": "main.py",
-            "content": "print('Hello, Piston!')"
-        }
-    ]
-}
-```
-
-### Get Runtimes
-`GET /api/v2/runtimes`
-
-Returns a list of installed languages and versions.
+---
 
 ## 🗂 Project Structure
 
 - `core/api`: The backend execution engine.
-- `core/cli`: Command-line tool for package management and testing.
-- `core/repo`: Local package repository for building and caching runtimes.
-- `packages/`: Docker build specifications for each language.
-- `data/`: Persistent storage for installed packages.
+- `core/cli`: Internal CLI tool for automated package management.
+- `core/repo`: Local package repository (optional configuration).
+- `scripts/`: Management and internal setup scripts.
+- `data/`: Persistent storage for installed packages and logs.
+- `packages/`: Docker build recipes for custom language runtimes.
+- `tests/`: Security and exploit resistance tests.
+
+## 🛠 Troubleshooting
+
+### `jq: parse error: Invalid numeric literal`
+If you see this error when running `./scripts/piston list`, it means the API is not returning the expected JSON. This usually happens if:
+1. **Stale Image**: You started the container without building it first. Run `docker-compose build api` then `./scripts/piston start`.
+2. **Setup in Progress**: The container is still installing languages. Check the logs with `./scripts/piston logs`.
+
+### Runtimes not showing up
+If `./scripts/piston list` is empty:
+- Ensure `PISTON_INSTALL_PACKAGES` is correctly set in your `.env`.
+- Check logs for any installation errors.
 
 ## 🛡 Security
 
-Piston uses [Isolate](https://www.ucw.cz/moe/isolate.1.html) inside Docker for robust sandboxing. It employs Linux namespaces, chroot, and cgroups to ensure:
+Piston uses [Isolate](https://www.ucw.cz/moe/isolate.1.html) inside Docker for robust sandboxing. It ensures:
 - No outgoing network interaction by default.
 - Resource limits (CPU, Memory, Processes).
-- File system isolation and cleanup.
+- File system isolation and automatic cleanup.
 
 ---
 *Customized from the original [EngineerMan/Piston](https://github.com/engineer-man/piston).*
