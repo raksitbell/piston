@@ -18,6 +18,16 @@
 ### Fixed
 - **Installation Friction**: Eliminated the need for manual/interactive setup steps.
 
+## [3.1.2] - 2026-04-08
+
+### Fixed
+- **Cross-Platform Compatibility**: Resolved the `/usr/bin/env: 'bash\r': No such file or directory` error by normalizing all shell and management scripts to Unix line endings (**LF**).
+- **Line Ending Persistence**: Added a `.gitattributes` file to ensure shell scripts keep LF endings regardless of the operating system or Git configuration (e.g., Windows `core.autocrlf`).
+
+### Changed
+- **Docker Structure Improvements**: Migrated the internal container entrypoint to `core/api/entrypoint.sh` and removed the redundant `scripts/` directory, moving towards more standard Docker patterns.
+- **Improved Ignore Patterns**: Updated `.gitignore` to better handle Node.js artifacts, OS-specific files, and persistent package indices.
+
 ## [2.1.0] - 2026-04-05
 
 ### Added

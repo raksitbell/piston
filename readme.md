@@ -37,38 +37,52 @@ A high-performance, general-purpose code execution engine, optimized for persona
 
 4. **Start Piston:**
    ```sh
-   ./scripts/piston start
+   docker-compose up -d
    ```
-   *The container will automatically download and install the languages you've listed in `.env` on startup. Check the progress with `./scripts/piston logs`.*
+   *The container will automatically download and install the languages you've listed in `.env` on startup. Check the progress with `docker-compose logs -f`.*
 
 ---
 
 ## 🛠 Usage
 
-### Management Utility (`./scripts/piston`)
+### Standard Docker Commands
 
 A thin helper script is provided for common tasks:
 
 | Command | Description |
 | :--- | :--- |
-| **`./piston setup`** | **(Recommended)** Interactive wizard for building and installing languages. |
-| **`./piston list`** | List all currently installed and active language packages. |
-| **`./piston list --all`** | List every package available in the repository index. |
-| **`./piston install <pkg>`**| Install a pre-built package from the repository. |
-| **`./piston uninstall <pkg>`** | Remove a language package (cleanly hides it from the list). |
-| **`./piston sync`** | Synchronize your fork with the original upstream repository. |
-| **`./piston start / stop`** | Start or stop the Piston API Docker containers. |
-| **`./piston restart`** | Restart the Piston environment. |
-| **`./piston logs`** | View live logs from the API and repository services. |
+| **`docker-compose up -d`** | Start Piston in the background |
+| **`docker-compose stop`** | Stop Piston |
+| **`docker-compose restart`** | Restart Piston containers |
+| **`docker-compose logs -f`** | Follow Piston logs |
+| **`docker-compose exec api /bin/bash`** | Open a bash shell in the API container |
+| **`docker-compose build api`** | Rebuild the Piston image after changes |
+
+### Managing Runtimes
+
+To interact with the Piston API from your host machine:
+
+- **List Runtimes:**
+  ```sh
+  curl -s http://localhost:2000/api/v2/runtimes | jq -r '.[].language + " (" + .version + ")"'
+  ```
+- **List All Available Packages:**
+  ```sh
+  docker-compose exec -T api node core/cli/index.js ppman list --all
+  ```
+- **Install/Uninstall a Package:**
+  ```sh
+  docker-compose exec -T api node core/cli/index.js ppman install python
+  ```
 
 ### CLI (`core/cli/index.js`)
 
-You can also interact with the CLI directly via the helper script for more advanced usage:
+You can also interact with the CLI directly via `docker-compose` for more advanced usage:
 
 ```sh
 # Run a script immediately
 echo 'print("Hello from Piston!")' > test.py
-./piston run python test.py
+docker-compose exec -T api node core/cli/index.js run python test.py
 ```
 
 ## 🌐 API Reference
@@ -110,12 +124,12 @@ Returns a list of installed languages and versions.
 ## 🛠 Troubleshooting
 
 ### `jq: parse error: Invalid numeric literal`
-If you see this error when running `./scripts/piston list`, it means the API is not returning the expected JSON. This usually happens if:
-1. **Stale Image**: You started the container without building it first. Run `docker-compose build api` then `./scripts/piston start`.
-2. **Setup in Progress**: The container is still installing languages. Check the logs with `./scripts/piston logs`.
+If you see this error when listing runtimes, it means the API is not returning the expected JSON. This usually happens if:
+1. **Stale Image**: You started the container without building it first. Run `docker-compose build api` then `docker-compose up -d`.
+2. **Setup in Progress**: The container is still installing languages. Check the logs with `docker-compose logs -f`.
 
 ### Runtimes not showing up
-If `./scripts/piston list` is empty:
+If runtimes are missing:
 - Ensure `PISTON_INSTALL_PACKAGES` is correctly set in your `.env`.
 - Check logs for any installation errors.
 
