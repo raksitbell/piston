@@ -43,7 +43,7 @@ RUN cd core/cli && npm install
 
 # Copy entrypoint script
 COPY scripts/entrypoint.sh .
-RUN chmod +x entrypoint.sh
+RUN chmod +x entrypoint.sh && sed -i 's/\r$//' entrypoint.sh
 
 # Environment setup
 ENV PISTON_DATA_DIRECTORY=/piston/data

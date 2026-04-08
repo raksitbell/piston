@@ -21,11 +21,11 @@
 ## [3.1.2] - 2026-04-08
 
 ### Fixed
-- **Cross-Platform Compatibility**: Resolved the `/usr/bin/env: 'bash\r': No such file or directory` error by normalizing all shell and management scripts to Unix line endings (**LF**).
-- **Line Ending Persistence**: Added a `.gitattributes` file to ensure shell scripts keep LF endings regardless of the operating system or Git configuration (e.g., Windows `core.autocrlf`).
+- **Cross-Platform Compatibility**: Resolved the `/usr/bin/env: 'bash\r': No such file or directory` error by normalizing all shell and management scripts across the repository to Unix line endings (**LF**).
+- **Line Ending Persistence**: Updated `.gitattributes` to ensure shell scripts keep LF endings regardless of the operating system or Git configuration (e.g., Windows `core.autocrlf`).
 
 ### Changed
-- **Docker Structure Improvements**: Migrated the internal container entrypoint to `core/api/entrypoint.sh` and removed the redundant `scripts/` directory, moving towards more standard Docker patterns.
+- **Docker Optimization**: Optimized the root `Dockerfile` by merging entrypoint setup commands and adding a safety `sed` normalization step to strip carriage returns during the build process, ensuring resilience on Windows hosts.
 - **Improved Ignore Patterns**: Updated `.gitignore` to better handle Node.js artifacts, OS-specific files, and persistent package indices.
 
 ## [2.1.0] - 2026-04-05
