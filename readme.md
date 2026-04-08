@@ -6,9 +6,10 @@ A high-performance, general-purpose code execution engine, optimized for persona
 
 ### Prerequisites
 
-- **Docker & Docker Compose** (Required)
-- **Cgroup v2** enabled (standard on most modern Linux distros and macOS)
-- **Supported Architectures**: x86_64 and ARM64 (Apple Silicon).
+- Docker & Docker Compose
+- Node.js (for the CLI)
+- Cgroup v2 enabled (for sandboxing)
+- **Supported Architectures**: x86_64 (Intel/AMD) and ARM64 (Apple Silicon/M-series).
 
 ### Installation
 
@@ -50,28 +51,51 @@ A thin helper script is provided for common tasks:
 
 | Command | Description |
 | :--- | :--- |
-| **`./scripts/piston start`** | Start Piston in the background using docker-compose. |
-| **`./scripts/piston stop`** | Stop the service and remove containers. |
-| **`./scripts/piston restart`** | Restart all Piston services. |
-| **`./scripts/piston logs`** | View live logs (useful for monitoring language installation). |
-| **`./scripts/piston list`** | List all currently installed and active language runtimes. |
-| **`./scripts/piston update`**| Update the codebase and rebuild the container image. |
-| **`./scripts/piston shell`** | Open a bash shell inside the API container. |
+| **`./piston setup`** | **(Recommended)** Interactive wizard for building and installing languages. |
+| **`./piston list`** | List all currently installed and active language packages. |
+| **`./piston list --all`** | List every package available in the repository index. |
+| **`./piston install <pkg>`**| Install a pre-built package from the repository. |
+| **`./piston uninstall <pkg>`** | Remove a language package (cleanly hides it from the list). |
+| **`./piston sync`** | Synchronize your fork with the original upstream repository. |
+| **`./piston start / stop`** | Start or stop the Piston API Docker containers. |
+| **`./piston restart`** | Restart the Piston environment. |
+| **`./piston logs`** | View live logs from the API and repository services. |
 
-### Configuration (`.env`)
+### CLI (`core/cli/index.js`)
 
-Piston is configured entirely through environment variables. Key options include:
+You can also interact with the CLI directly via the helper script for more advanced usage:
 
-- `PISTON_INSTALL_PACKAGES`: Comma-separated list of languages to auto-install (e.g., `python,node=20.11.1,bash`).
-- `PORT`: The host port to map Piston API to (default: `2000`).
-- `PISTON_LOG_LEVEL`: Set to `DEBUG` for detailed troubleshooting.
+```sh
+# Run a script immediately
+echo 'print("Hello from Piston!")' > test.py
+./piston run python test.py
+```
 
-## 🌐 Documentation
+## 🌐 API Reference
 
-- [**API Reference**](./docs/api.md): Detailed technical guide for REST and WebSocket endpoints.
-- [**Changelog**](CHANGELOG.md): History of all notable changes and releases.
+The Piston API is exposed on port **2000** by default.
 
----
+### Execute Code
+`POST /api/v2/execute`
+
+**Request Body:**
+```json
+{
+    "language": "python",
+    "version": "3.10.0",
+    "files": [
+        {
+            "name": "main.py",
+            "content": "print('Hello, Piston!')"
+        }
+    ]
+}
+```
+
+### Get Runtimes
+`GET /api/v2/runtimes`
+
+Returns a list of installed languages and versions.
 
 ## 🗂 Project Structure
 
@@ -95,7 +119,37 @@ If `./scripts/piston list` is empty:
 - Ensure `PISTON_INSTALL_PACKAGES` is correctly set in your `.env`.
 - Check logs for any installation errors.
 
-## 🛡 Security
+## 🛡 Security & Authentication
+
+Piston includes an automated system to secure your API access.
+
+1.  **Generate a Key**:
+    ```bash
+    ./piston key generate
+    ```
+    This creates a random 32-character key and saves it to `.piston_key`.
+
+2.  **Zero-Config Usage**:
+    - The **CLI** and the **`./piston`** script automatically discover and use `.piston_key`.
+    - The **API Service** picks up the key from the environment via Docker Compose automatically.
+
+3.  **Manual API Calls**:
+    Run `./piston key show` to get your key and a pre-formatted `curl` example:
+    ```bash
+    curl -H "Authorization: YOUR_KEY_HERE" -X POST ...
+    ```
+
+## 🍎 Native ARM64 (Apple Silicon) Support
+
+This edition of Piston is optimized for **ARM64 (M1/M2/M3)**. If you see architecture-related errors (like `qemu-x86_64`), ensure your services and runtimes are built natively:
+
+```bash
+# Rebuild the Docker containers natively
+./piston rebuild
+
+# Rebuild all installed language packages natively
+./piston rebuild-all
+```
 
 Piston uses [Isolate](https://www.ucw.cz/moe/isolate.1.html) inside Docker for robust sandboxing. It ensures:
 - No outgoing network interaction by default.
