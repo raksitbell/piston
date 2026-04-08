@@ -1,4 +1,28 @@
+# Piston Persistent Storage
 data/
+
+# Environment and Secrets
+.env
+.piston_key
 .piston_env
-node_modules
+.envrc
+
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts and packages
+*.pkg.tar.gz
+packages/**/bin/
+packages/**/lib/
+packages/**/build/
+packages/**/obj/
+core/repo/index
+
+# Editor/OS Specific
 .vscode/
+.idea/
+.DS_Store
+Thumbs.db
