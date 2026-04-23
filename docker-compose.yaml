@@ -1,8 +1,9 @@
-
-
 services:
     api:
-        build: .
+        platform: ${PISTON_PLATFORM:-linux/amd64}
+        build:
+            context: .
+            dockerfile: ${PISTON_DOCKERFILE:-Dockerfile.x86}
         container_name: piston_api
         restart: always
         privileged: true

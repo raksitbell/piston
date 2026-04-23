@@ -1,0 +1,49 @@
+# Stage 1: Build Isolate (Skipped for ARM Mock)
+FROM buildpack-deps:bullseye AS isolate
+# We still keep the stage for compatibility but we won't use it for the binary
+RUN mkdir -p /usr/local/bin && touch /usr/local/bin/placeholder
+
+# Stage 2: Final Image (ARM optimized with Mock Isolate)
+FROM node:16-bullseye-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y libxml2 gnupg tar coreutils util-linux libc6-dev \
+    binutils build-essential locales libpcre3-dev libevent-dev libgmp3-dev \
+    libncurses6 libncurses5 libedit-dev libseccomp-dev rename procps python3 \
+    libreadline-dev libblas-dev liblapack-dev libpcre3-dev libarpack2-dev \
+    libfftw3-dev libglpk-dev libqhull-dev libqrupdate-dev libsuitesparse-dev \
+    libsundials-dev libpcre2-dev libcap-dev curl \
+    qemu-user-static && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN useradd -M piston
+
+# Install Mock Isolate instead of the real one
+COPY scripts/mock-isolate.sh /usr/local/bin/isolate
+RUN chmod +x /usr/local/bin/isolate
+
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+
+WORKDIR /piston
+
+# Copy API
+COPY core/api ./core/api
+RUN cd core/api && npm install
+
+# Copy CLI
+COPY core/cli ./core/cli
+RUN cd core/cli && npm install
+
+# Copy entrypoint script
+COPY scripts/entrypoint.sh .
+RUN chmod +x entrypoint.sh && sed -i 's/\r$//' entrypoint.sh
+
+ENV PISTON_DATA_DIRECTORY=/piston/data
+VOLUME /piston/data
+
+EXPOSE 2000
+
+ENTRYPOINT ["/piston/entrypoint.sh"]
