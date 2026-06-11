@@ -1,9 +1,7 @@
 # Exploit Tests
 
-This directory contains a collection of exploits which have already been patched
+This directory contains regression tests for exploits that have already been patched.
 
-Write exploits in any language supported by piston.
+Write exploit tests in any language supported by Piston. A passing test should demonstrate that Piston resists the attack.
 
-Hopefully when running any files in this directory, piston will resist the attack.
-
-Leave a comment in the code describing how the exploit works.
+Leave a short comment in each test explaining how the exploit works.

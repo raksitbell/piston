@@ -1,24 +1,31 @@
 # Piston API Reference (v2)
 
-This document provides a detailed technical reference for the Piston execution engine API.
+This document describes the REST and WebSocket API exposed by the Piston execution engine.
 
-## 🔗 Quick Navigation
-- [**Readme**](../readme.md) | [**Changelog**](../CHANGELOG.md)
+## Authentication
 
----
+If `PISTON_KEY` is set, every API request must include the same value in the `Authorization` header:
 
-## 🚀 Code Execution
+```sh
+Authorization: your-secret-key
+```
 
-### Execute Code (REST)
-Run code in a secure, sandboxed environment.
+When `PISTON_KEY` is not set, the API does not require authentication.
+
+## Code Execution
+
+### Execute Code
+
+Run code in a sandboxed environment.
 
 **Endpoint:** `POST /api/v2/execute`
 
-**Request Body:**
+**Request body:**
+
 ```json
 {
     "language": "python",
-    "version": "3.10.0",
+    "version": "3.12.0",
     "files": [
         {
             "name": "main.py",
@@ -30,15 +37,20 @@ Run code in a secure, sandboxed environment.
     "compile_timeout": 10000,
     "run_timeout": 3000,
     "compile_memory_limit": -1,
-    "run_memory_limit": -1
+    "run_memory_limit": -1,
+    "compile_cpu_time": 10000,
+    "run_cpu_time": 3000
 }
 ```
 
-**Response (Success):**
+`language`, `version`, and `files` are required. The version can be an exact version or another semver selector supported by the runtime resolver, such as `*`.
+
+**Successful response:**
+
 ```json
 {
     "language": "python",
-    "version": "3.10.0",
+    "version": "3.12.0",
     "run": {
         "stdout": "Hello, Piston!\n",
         "stderr": "",
@@ -49,31 +61,38 @@ Run code in a secure, sandboxed environment.
 }
 ```
 
-### Connect (WebSocket)
-For interactive execution (standard input support).
+Compiled languages may also include a `compile` object with the same output shape.
+
+### Connect
+
+Run an interactive job over WebSocket.
 
 **Endpoint:** `WS /api/v2/connect`
 
-**Flow:**
-1. Send an `init` message with the job details.
-2. Receive `data` messages for `stdout`/`stderr`.
-3. Receive an `exit` message when completed.
+Message flow:
 
----
+1. Send an `init` message with the same job fields accepted by `POST /api/v2/execute`, plus `"type": "init"`.
+2. Receive `runtime`, `stage`, `data`, and `exit` messages while the job runs.
+3. Send `data` messages with `"stream": "stdin"` to provide input.
+4. Send `signal` messages to forward supported process signals.
 
-## 📦 Runtime Management
+The socket closes if it is not initialized within one second.
+
+## Runtime Management
 
 ### List Runtimes
-Get all currently installed and active runtimes.
+
+Get currently installed runtimes.
 
 **Endpoint:** `GET /api/v2/runtimes`
 
 **Response:**
+
 ```json
 [
     {
         "language": "python",
-        "version": "3.10.0",
+        "version": "3.12.0",
         "aliases": ["py", "python3"],
         "runtime": "cpython"
     }
@@ -81,21 +100,53 @@ Get all currently installed and active runtimes.
 ```
 
 ### List Available Packages
-Get a list of all packages that *can* be installed from the repository.
+
+Get packages that can be installed from the configured repository index.
 
 **Endpoint:** `GET /api/v2/packages`
 
+**Response:**
+
+```json
+[
+    {
+        "language": "python",
+        "language_version": "3.12.0",
+        "installed": true
+    }
+]
+```
+
 ### Install Package
+
 Download and install a package.
 
 **Endpoint:** `POST /api/v2/packages`
-**Body:** `{"language": "python", "version": "3.10.0"}`
+
+**Body:**
+
+```json
+{
+    "language": "python",
+    "version": "3.12.0"
+}
+```
 
 ### Uninstall Package
+
 Remove an installed package.
 
 **Endpoint:** `DELETE /api/v2/packages`
-**Body:** `{"language": "python", "version": "3.10.0"}`
+
+**Body:**
+
+```json
+{
+    "language": "python",
+    "version": "3.12.0"
+}
+```
 
 ---
-[**Back to Main Readme**](./readme.md)
+
+[Back to Main Readme](../readme.md)

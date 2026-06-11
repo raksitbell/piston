@@ -1,102 +1,125 @@
 # Piston (Personal Edition)
 
-A high-performance, general-purpose code execution engine, optimized for personal use and entirely managed via Docker. Piston allows you to run untrusted and potentially malicious code in a secure, sandboxed environment.
+A Docker-managed code execution engine for running untrusted code in a sandboxed environment. This edition is configured for personal deployments with automatic runtime installation on container startup.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- Docker & Docker Compose
-- Node.js (for the CLI)
-- Cgroup v2 enabled (for sandboxing)
-- **Supported Architectures**: x86_64 (Intel/AMD) and ARM64 (Apple Silicon/M-series).
+- Docker and Docker Compose
+- Node.js, when using the CLI directly from the host
+- Cgroup v2 enabled for sandboxing
+- x86_64 or ARM64 host architecture
 
 ### Installation
 
-1. **Clone the repository:**
+1. Clone the repository:
    ```sh
    git clone https://github.com/engineer-man/piston
    cd piston
    ```
 
-2. **Configure your environment:**
-   Copy the example environment file and edit it to your liking:
+2. Configure the environment:
    ```sh
    cp .env.example .env
    ```
-   Open `.env` and set your preferred port and the list of languages you want to install:
+
+   Edit `.env` to choose the API bind address, runtime packages, and optional API key. Runtime packages use `language` or `language=version`:
    ```env
-   # Example: Install Python, Node.js, and GCC
-   PISTON_INSTALL_PACKAGES=python,node,gcc
+   PISTON_INSTALL_PACKAGES=bash,python=3.12.0,node=20.11.1,gcc
    ```
 
-3. **Build the container image:** (Required for new setup)
+3. Build the API image:
    ```sh
    docker-compose build api
    ```
 
-4. **Start Piston:**
+4. Start Piston:
    ```sh
    docker-compose up -d
    ```
-   *The container will automatically download and install the languages you've listed in `.env` on startup. Check the progress with `docker-compose logs -f`.*
 
----
+   The entrypoint installs packages listed in `PISTON_INSTALL_PACKAGES` after the API starts. Follow setup progress with:
+   ```sh
+   docker-compose logs -f api
+   ```
 
-## 🛠 Usage
+## Usage
 
-### Standard Docker Commands
-
-A thin helper script is provided for common tasks:
+### Docker Commands
 
 | Command | Description |
 | :--- | :--- |
-| **`docker-compose up -d`** | Start Piston in the background |
-| **`docker-compose stop`** | Stop Piston |
-| **`docker-compose restart`** | Restart Piston containers |
-| **`docker-compose logs -f`** | Follow Piston logs |
-| **`docker-compose exec api /bin/bash`** | Open a bash shell in the API container |
-| **`docker-compose build api`** | Rebuild the Piston image after changes |
+| `docker-compose up -d` | Start Piston in the background |
+| `docker-compose down` | Stop and remove Piston containers |
+| `docker-compose restart` | Restart Piston containers |
+| `docker-compose logs -f api` | Follow API logs |
+| `docker-compose exec api /bin/bash` | Open a shell in the API container |
+| `docker-compose build api` | Rebuild the API image |
+
+The helper script at `scripts/piston` wraps common Docker Compose commands:
+
+```sh
+scripts/piston start
+scripts/piston logs
+scripts/piston shell
+scripts/piston list
+```
 
 ### Managing Runtimes
 
-To interact with the Piston API from your host machine:
-
-- **List Runtimes:**
-  ```sh
-  curl -s http://localhost:2000/api/v2/runtimes | jq -r '.[].language + " (" + .version + ")"'
-  ```
-- **List All Available Packages:**
-  ```sh
-  docker-compose exec -T api node core/cli/index.js ppman list --all
-  ```
-- **Install/Uninstall a Package:**
-  ```sh
-  docker-compose exec -T api node core/cli/index.js ppman install python
-  ```
-
-### CLI (`core/cli/index.js`)
-
-You can also interact with the CLI directly via `docker-compose` for more advanced usage:
+List installed runtimes:
 
 ```sh
-# Run a script immediately
-echo 'print("Hello from Piston!")' > test.py
-docker-compose exec -T api node core/cli/index.js run python test.py
+curl -s http://localhost:2000/api/v2/runtimes | jq -r '.[].language + " (" + .version + ")"'
 ```
 
-## 🌐 API Reference
+List packages available from the configured package repository:
 
-The Piston API is exposed on port **2000** by default.
+```sh
+docker-compose exec -T api node core/cli/index.js ppman list --all
+```
+
+Install or uninstall a package:
+
+```sh
+docker-compose exec -T api node core/cli/index.js ppman install python=3.12.0
+docker-compose exec -T api node core/cli/index.js ppman uninstall python=3.12.0
+```
+
+Available package recipes in this checkout:
+
+| Language | Versions |
+| :--- | :--- |
+| bash | 5.1.0, 5.2.0 |
+| gcc | 10.2.0 |
+| go | 1.16.2 |
+| java | 15.0.2 |
+| node | 15.10.0, 16.3.0, 18.15.0, 20.11.1 |
+| php | 8.0.2, 8.2.3 |
+| python | 2.7.18, 3.5.10, 3.9.1, 3.9.4, 3.10.0-alpha.7, 3.10.0, 3.11.0, 3.12.0 |
+| rust | 1.50.0, 1.56.1, 1.62.0, 1.63.0, 1.65.0, 1.68.2 |
+| typescript | 4.2.3, 5.0.3 |
+
+### Running Code Through the CLI
+
+```sh
+echo 'print("Hello from Piston!")' > test.py
+docker-compose exec -T api node core/cli/index.js run python test.py -l 3.12.0
+```
+
+## API Reference
+
+The Piston API listens on port `2000` by default.
 
 ### Execute Code
+
 `POST /api/v2/execute`
 
-**Request Body:**
 ```json
 {
     "language": "python",
-    "version": "3.10.0",
+    "version": "3.12.0",
     "files": [
         {
             "name": "main.py",
@@ -107,68 +130,75 @@ The Piston API is exposed on port **2000** by default.
 ```
 
 ### Get Runtimes
+
 `GET /api/v2/runtimes`
 
-Returns a list of installed languages and versions.
+Returns installed languages and versions.
 
-## 🗂 Project Structure
+See [docs/api.md](docs/api.md) for the full API reference.
 
-- `core/api`: The backend execution engine.
-- `core/cli`: Internal CLI tool for automated package management.
-- `core/repo`: Local package repository (optional configuration).
-- `scripts/`: Management and internal setup scripts.
-- `data/`: Persistent storage for installed packages and logs.
-- `packages/`: Docker build recipes for custom language runtimes.
-- `tests/`: Security and exploit resistance tests.
+## Project Structure
 
-## 🛠 Troubleshooting
+- `core/api`: REST and WebSocket execution API.
+- `core/cli`: CLI for executing code and managing packages.
+- `core/repo`: Local package repository server tooling.
+- `scripts`: Container entrypoint and management helpers.
+- `packages`: Build recipes for language runtimes.
+- `tests`: Security and regression tests.
 
-### `jq: parse error: Invalid numeric literal`
-If you see this error when listing runtimes, it means the API is not returning the expected JSON. This usually happens if:
-1. **Stale Image**: You started the container without building it first. Run `docker-compose build api` then `docker-compose up -d`.
-2. **Setup in Progress**: The container is still installing languages. Check the logs with `docker-compose logs -f`.
+Runtime data is created under `data/` by Docker Compose and is not tracked in git.
 
-### Runtimes not showing up
-If runtimes are missing:
-- Ensure `PISTON_INSTALL_PACKAGES` is correctly set in your `.env`.
-- Check logs for any installation errors.
+## Security And Authentication
 
-## 🛡 Security & Authentication
+Sandboxing is handled by Isolate inside Docker. Jobs run without networking by default and are constrained by CPU, memory, process, file, and output limits.
 
-Piston includes an automated system to secure your API access.
+To require an API key, set `PISTON_KEY` in `.env`. Requests to mutating endpoints must include the same value in the `Authorization` header:
 
-1.  **Generate a Key**:
-    ```bash
-    ./piston key generate
-    ```
-    This creates a random 32-character key and saves it to `.piston_key`.
-
-2.  **Zero-Config Usage**:
-    - The **CLI** and the **`./piston`** script automatically discover and use `.piston_key`.
-    - The **API Service** picks up the key from the environment via Docker Compose automatically.
-
-3.  **Manual API Calls**:
-    Run `./piston key show` to get your key and a pre-formatted `curl` example:
-    ```bash
-    curl -H "Authorization: YOUR_KEY_HERE" -X POST ...
-    ```
-
-## 🍎 Native ARM64 (Apple Silicon) Support
-
-This edition of Piston is optimized for **ARM64 (M1/M2/M3)**. If you see architecture-related errors (like `qemu-x86_64`), ensure your services and runtimes are built natively:
-
-```bash
-# Rebuild the Docker containers natively
-./piston rebuild
-
-# Rebuild all installed language packages natively
-./piston rebuild-all
+```sh
+curl -H "Authorization: $PISTON_KEY" \
+  -H "Content-Type: application/json" \
+  -X POST http://localhost:2000/api/v2/execute \
+  -d '{"language":"python","version":"3.12.0","files":[{"content":"print(42)"}]}'
 ```
 
-Piston uses [Isolate](https://www.ucw.cz/moe/isolate.1.html) inside Docker for robust sandboxing. It ensures:
-- No outgoing network interaction by default.
-- Resource limits (CPU, Memory, Processes).
-- File system isolation and automatic cleanup.
+The CLI also reads `PISTON_KEY` from the environment or `.piston_key` when present.
+
+## ARM64 Notes
+
+`docker-compose.yaml` defaults to the x86 image configuration:
+
+```yaml
+PISTON_PLATFORM=linux/amd64
+PISTON_DOCKERFILE=Dockerfile.x86
+```
+
+For ARM64 experiments, set the platform and Dockerfile explicitly in `.env`:
+
+```env
+PISTON_PLATFORM=linux/arm64
+PISTON_DOCKERFILE=Dockerfile.arm
+```
+
+The ARM Dockerfile uses the repository's mock Isolate implementation, so it is useful for local development but should not be treated as equivalent to the x86 sandbox.
+
+## Troubleshooting
+
+### `jq: parse error: Invalid numeric literal`
+
+The API probably returned an error or plain text instead of JSON. Rebuild and restart the API, then check logs:
+
+```sh
+docker-compose build api
+docker-compose up -d
+docker-compose logs -f api
+```
+
+### Runtimes Not Showing Up
+
+- Confirm `PISTON_INSTALL_PACKAGES` is set in `.env`.
+- Use `language=version` when you need a specific runtime version.
+- Check installation logs with `docker-compose logs -f api`.
 
 ---
-*Customized from the original [EngineerMan/Piston](https://github.com/engineer-man/piston).*
+
+Customized from the original [EngineerMan/Piston](https://github.com/engineer-man/piston).
