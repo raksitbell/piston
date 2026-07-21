@@ -1,17 +1,26 @@
+name: codearea-executor
+
 services:
-    api:
-        platform: ${PISTON_PLATFORM:-linux/amd64}
-        build:
-            context: .
-            dockerfile: ${PISTON_DOCKERFILE:-Dockerfile.x86}
-        container_name: piston_api
-        restart: always
-        privileged: true
-        env_file: .env
-        ports:
-            - "${PORT:-2000}:2000"
-        volumes:
-            - ./data/piston/packages:/piston/packages
-            - ./data/piston/data:/piston/data
-        tmpfs:
-            - /tmp:exec
+  piston:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    privileged: true
+    env_file: .env
+    ports:
+      - "${PISTON_PORT:-2000}:2000"
+    volumes:
+      - piston-packages:/piston/packages
+      - piston-data:/piston/data
+    tmpfs:
+      - /tmp:exec
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:2000/api/v2/runtimes"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  piston-packages:
+  piston-data:
