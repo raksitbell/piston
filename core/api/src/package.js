@@ -37,7 +37,11 @@ class Package {
 
     async install() {
         if (this.installed) {
-            throw new Error('Already installed');
+            return {
+                language: this.language,
+                version: this.version.raw,
+                alreadyInstalled: true,
+            };
         }
 
         logger.info(`Installing ${this.language}-${this.version.raw}`);
@@ -57,6 +61,11 @@ class Package {
         );
         const pkgpath = path.join(this.install_path, 'pkg.tar.gz');
         const download = await fetch(this.download);
+        if (!download.ok || !download.body) {
+            throw new Error(
+                `Package download failed with HTTP ${download.status}`
+            );
+        }
 
         const file_stream = fss.create_write_stream(pkgpath);
         await new Promise((resolve, reject) => {
@@ -90,9 +99,9 @@ class Package {
         );
 
         await new Promise((resolve, reject) => {
-            const proc = cp.exec(
-                `bash -c 'cd "${this.install_path}" && tar xzf ${pkgpath}'`
-            );
+            const proc = cp.spawn('tar', ['xzf', pkgpath], {
+                cwd: this.install_path,
+            });
 
             proc.once('exit', (code, _) => {
                 code === 0 ? resolve() : reject();
@@ -165,40 +174,14 @@ class Package {
         };
     }
 
-    async uninstall() {
-        logger.info(`Uninstalling ${this.language}-${this.version.raw}`);
-
-        logger.debug('Finding runtime');
-        const found_runtime = runtime.get_runtime_by_name_and_version(
-            this.language,
-            this.version.raw
-        );
-
-        if (!found_runtime) {
-            logger.error(
-                `Uninstalling ${this.language}-${this.version.raw} failed: Not installed`
-            );
+    static async get_package_list() {
+        const response = await fetch(config.repo_url);
+        if (!response.ok) {
             throw new Error(
-                `${this.language}-${this.version.raw} is not installed`
+                `Package index request failed with HTTP ${response.status}`
             );
         }
-
-        logger.debug('Unregistering runtime');
-        found_runtime.unregister();
-
-        logger.debug('Cleaning files from disk');
-        await fs.rmdir(this.install_path, { recursive: true });
-
-        logger.info(`Uninstalled ${this.language}-${this.version.raw}`);
-
-        return {
-            language: this.language,
-            version: this.version.raw,
-        };
-    }
-
-    static async get_package_list() {
-        const repo_content = await fetch(config.repo_url).then(x => x.text());
+        const repo_content = await response.text();
 
         const entries = repo_content.split('\n').filter(x => x.length > 0);
 

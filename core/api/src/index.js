@@ -2,18 +2,15 @@
 require('nocamel');
 const Logger = require('logplease');
 const express = require('express');
-const expressWs = require('express-ws');
 const globals = require('./globals');
 const config = require('./config');
 const path = require('path');
 const fs = require('fs/promises');
 const fss = require('fs');
-const body_parser = require('body-parser');
 const runtime = require('./runtime');
 
 const logger = Logger.create('index');
 const app = express();
-expressWs(app);
 
 (async () => {
     logger.info('Setting loglevel to', config.log_level);
@@ -64,13 +61,11 @@ expressWs(app);
     logger.debug('Constructing Express App');
     logger.debug('Registering middleware');
 
-    app.use(body_parser.urlencoded({ extended: true }));
-    app.use(body_parser.json());
+    app.use(express.json({ limit: '1mb' }));
 
     app.use((err, req, res, next) => {
-        return res.status(400).send({
-            stack: err.stack,
-        });
+        logger.warn(`Rejected invalid request body: ${err.message}`);
+        return res.status(400).send({ message: 'Invalid JSON request body' });
     });
 
     logger.debug('Registering Routes');
@@ -97,6 +92,6 @@ expressWs(app);
 
     process.on('SIGTERM', () => {
         server.close();
-        process.exit(0)
+        process.exit(0);
     });
 })();
